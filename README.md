@@ -44,12 +44,12 @@ Create a root `.env` (copy from `.env.example`) and customize as needed:
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `POSTGRES_DB` | Database name | `inventory_db` |
+| `POSTGRES_DB` | Database name | `inventory_db_nuki` |
 | `POSTGRES_USER` | Database user | `inventory_user` |
-| `POSTGRES_PASSWORD` | Database password | `change_me` |
-| `POSTGRES_HOST` | Database host (use `postgres` inside Docker) | `postgres` |
+| `POSTGRES_PASSWORD` | Database password | `<RENDER_DB_PASSWORD>` |
+| `POSTGRES_HOST` | Database host (use `postgres` inside Docker, Render host for production) | `dpg-d8g0813eo5us73fuf2hg-a` |
 | `POSTGRES_PORT` | Database port | `5432` |
-| `DATABASE_URL` | Optional full SQLAlchemy URL (otherwise derived from values above) | *(empty)* |
+| `DATABASE_URL` | Optional full SQLAlchemy URL (overrides POSTGRES_* variables if set) | `<RENDER_DATABASE_URL>` |
 | `APP_NAME` | FastAPI metadata | `Inventory & Order Management System API` |
 | `APP_VERSION` | API version string | `1.0.0` |
 | `ENVIRONMENT` | `development` / `production` | `development` |
@@ -150,11 +150,22 @@ The script is idempotent—you can rerun it any time to restore the baseline dat
 ### Backend (Render)
 1. Create new **Web Service** from GitHub repo pointing to `/backend` directory.
 2. Environment: `Python 3`.
-3. Build command: `pip install -r requirements.txt && alembic upgrade head`.
-4. Start command: `uvicorn app.main:app --host 0.0.0.0 --port 8000`.
-5. Configure environment variables (`POSTGRES_*`, `LOG_LEVEL`, etc.).
-6. Provision a Render PostgreSQL instance, copy credentials into service env.
+3. Build command: `pip install -r requirements.txt`.
+4. Start command: `alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
+5. Configure environment variables in Render dashboard:
+   - `DATABASE_URL` (recommended - full connection string from Render PostgreSQL)
+   - Or individual `POSTGRES_*` variables:
+     - `POSTGRES_DB=inventory_db_nuki`
+     - `POSTGRES_USER=inventory_user`
+     - `POSTGRES_PASSWORD=<your-render-db-password>`
+     - `POSTGRES_HOST=dpg-d8g0813eo5us73fuf2hg-a`
+     - `POSTGRES_PORT=5432`
+   - `ENVIRONMENT=production`
+   - `LOG_LEVEL=INFO`
+6. Provision a Render PostgreSQL instance, copy the internal database URL to `DATABASE_URL`.
 7. Update frontend `VITE_API_BASE_URL` to Render backend URL before redeploying UI.
+
+**Note:** The application prioritizes `DATABASE_URL` if set, otherwise constructs the connection string from `POSTGRES_*` variables. This allows seamless switching between local development and Render deployment.
 
 ## Docker Hub Publishing Guide
 ```bash
